@@ -12,7 +12,7 @@ import scala.concurrent.Await
 object StoreApp extends App {
   val system = ActorSystem(Config.systemName)
 
-  val cart = system.actorOf(Cart.props())
+  val cart = system.actorOf(CartFSM.props())
 
   cart ! AddItem
   cart ! AddItem
