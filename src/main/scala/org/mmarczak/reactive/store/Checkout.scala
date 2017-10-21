@@ -3,22 +3,7 @@ package org.mmarczak.reactive.store
 import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorLogging, Props, Timers}
 import scala.concurrent.duration.FiniteDuration
-
-sealed trait DeliveryMethod
-case object Postman extends DeliveryMethod
-case object SelfPickup extends DeliveryMethod
-case class SelectDeliveryMethod(deliveryMethod: DeliveryMethod)
-
-sealed trait PaymentMethod
-case object CreditCard extends PaymentMethod
-case object OnlineTransfer extends PaymentMethod
-case class SelectPaymentMethod(paymentMethod: PaymentMethod)
-
-sealed trait CheckoutStatus
-case object Cancelled extends CheckoutStatus
-case object Closed extends CheckoutStatus
-
-case object ReceivePayment
+import CheckoutProtocol._
 
 object Checkout {
   def props(): Props = Props(new Checkout())

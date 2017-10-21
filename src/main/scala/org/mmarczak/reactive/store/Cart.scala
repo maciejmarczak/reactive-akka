@@ -4,11 +4,6 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
 import scala.concurrent.duration.FiniteDuration
 
-case object AddItem
-case object RemoveItem
-case object StartCheckout
-case object GetCheckout
-
 object Cart {
   def props(): Props = Props(new Cart())
 }
@@ -48,6 +43,7 @@ class Cart extends Actor with ActorLogging with Timers {
   }
 
   import context._
+  import CartProtocol._, CheckoutProtocol._
   def empty: Receive = {
     case AddItem => {
       addItem()

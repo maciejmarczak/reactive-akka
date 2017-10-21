@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
+import CartProtocol._, CheckoutProtocol._
 
 import scala.concurrent.Await
 
