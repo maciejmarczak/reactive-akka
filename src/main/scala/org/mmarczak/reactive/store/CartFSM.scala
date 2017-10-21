@@ -45,7 +45,7 @@ class CartFSM extends FSM[CartState, CartData] {
     }
     case Event(StartCheckout, CartData(itemCount, _)) => {
       log.info("Starting checkout.")
-      goto(InCheckout) using CartData(itemCount, context.actorOf(Checkout.props()))
+      goto(InCheckout) using CartData(itemCount, context.actorOf(CheckoutFSM.props()))
     }
     case Event(StateTimeout, _) => {
       log.info("Cart timer expired.")
