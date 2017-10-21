@@ -31,12 +31,10 @@ class Cart extends Actor with ActorLogging with Timers {
 
     def resetTimer(): Unit = {
       disableTimer()
-      log.info(s"Starting new SingleTimer instance with timeout $cartTimeout.")
       timers.startSingleTimer(CartExpired, CartExpired, cartTimeout)
     }
 
     def disableTimer(): Unit = {
-      log.info("Cancelling existing timers.")
       timers.cancelAll()
     }
 
@@ -47,7 +45,6 @@ class Cart extends Actor with ActorLogging with Timers {
   def empty: Receive = {
     case AddItem => {
       addItem()
-      log.info("Switching state from empty to nonEmpty.")
       become(nonEmpty)
     }
   }
@@ -56,31 +53,26 @@ class Cart extends Actor with ActorLogging with Timers {
     case AddItem => addItem()
     case RemoveItem if itemCount == 1 => {
       removeItem()
-      log.info("Switching state from nonEmpty to empty.")
       become(empty)
     }
     case RemoveItem => removeItem()
     case StartCheckout => {
-      log.info("Switching state from nonEmpty to inCheckout.")
       CartTimer.disableTimer()
       checkoutActor = context.actorOf(Checkout.props())
       become(inCheckout)
     }
     case CartTimer.CartExpired => {
       itemCount = 0
-      log.info("Cart expired. Switching state from nonEmpty to empty.")
       become(empty)
     }
   }
 
   def inCheckout: Receive = {
     case Cancelled => {
-      log.info("Checkout cancelled.")
       CartTimer.resetTimer()
       become(nonEmpty)
     }
     case Closed => {
-      log.info("Checkout closed.")
       itemCount = 0
       become(empty)
     }

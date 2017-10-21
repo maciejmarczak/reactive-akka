@@ -2,7 +2,7 @@ package org.mmarczak.reactive.store
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{FSM, Props}
+import akka.actor.{FSM, LoggingFSM, Props}
 import org.mmarczak.reactive.store.CheckoutProtocol._
 
 import scala.concurrent.duration.FiniteDuration
@@ -18,7 +18,7 @@ object CheckoutFSM {
   def props(): Props = Props[CheckoutFSM]
 }
 
-class CheckoutFSM extends FSM[CheckoutState, CheckoutData] {
+class CheckoutFSM extends FSM[CheckoutState, CheckoutData] with LoggingFSM[CheckoutState, CheckoutData] {
 
   startWith(SelectingDelivery, CheckoutData(Postman, CreditCard))
 
@@ -30,7 +30,6 @@ class CheckoutFSM extends FSM[CheckoutState, CheckoutData] {
       goto(SelectingPayment) using CheckoutData(method, paymentMethod)
     }
     case Event(Cancelled | CheckoutExpired, _) => {
-      log.info("Checkout cancelled.")
       terminate(Cancelled)
     }
   }
@@ -41,18 +40,15 @@ class CheckoutFSM extends FSM[CheckoutState, CheckoutData] {
       goto(ProcessingPayment) using CheckoutData(deliveryMethod, method)
     }
     case Event(Cancelled | CheckoutExpired, _) => {
-      log.info("Checkout cancelled.")
       terminate(Cancelled)
     }
   }
 
   when(ProcessingPayment, stateTimeout = FiniteDuration(Config.paymentTimeout, TimeUnit.SECONDS)) {
     case Event(ReceivePayment, _) => {
-      log.info("Payment received.")
       terminate(Closed)
     }
     case Event(Cancelled | StateTimeout, _) => {
-      log.info("Checkout cancelled.")
       terminate(Cancelled)
     }
   }

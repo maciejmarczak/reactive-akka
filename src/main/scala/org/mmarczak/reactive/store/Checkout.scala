@@ -49,7 +49,6 @@ class Checkout extends Actor with ActorLogging with Timers {
 
   def processingPayment: Receive = {
     case ReceivePayment => {
-      log.info("Payment received. Closing checkout.")
       stop(Closed)
     }
     case Cancelled | PaymentExpired => {
@@ -66,7 +65,6 @@ class Checkout extends Actor with ActorLogging with Timers {
   }
 
   def setTimer(timer: Any, timeout: FiniteDuration): Unit = {
-    log.info(s"Starting new $timer timer with timeout $timeout")
     timers.startSingleTimer(timer, timer, timeout)
   }
 
