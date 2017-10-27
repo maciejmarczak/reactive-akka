@@ -1,8 +1,9 @@
 package org.mmarczak.reactive.store
 
 import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestKit}
-import org.mmarczak.reactive.store.CartProtocol.{AddItem, RemoveItem}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
+import org.mmarczak.reactive.store.CartProtocol.{AddItem, RemoveItem, StartCheckout}
+import org.mmarczak.reactive.store.CustomerProtocol.{CartEmpty, CheckoutStarted}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 
 class CartSpec extends TestKit(ActorSystem("CartSpec"))
@@ -30,6 +31,29 @@ class CartSpec extends TestKit(ActorSystem("CartSpec"))
       assert(underlyingActor.itemCount == 0)
       cart ! RemoveItem
       assert(underlyingActor.itemCount == 0)
+    }
+  }
+
+  "A Cart actor" must {
+
+    "create and return a reference to Checkout actor" in {
+      val customer = TestProbe()
+      val cart = customer.childActorOf(Cart.props())
+
+      customer.send(cart, AddItem)
+      customer.send(cart, StartCheckout)
+      customer.expectMsgPF() {
+        case CheckoutStarted(_) => ()
+      }
+    }
+
+    "send an CartEmpty message when item's count decrement to 0" in {
+      val customer = TestProbe()
+      val cart = customer.childActorOf(Cart.props())
+
+      customer.send(cart, AddItem)
+      customer.send(cart, RemoveItem)
+      customer.expectMsg(CartEmpty)
     }
   }
 
