@@ -18,19 +18,16 @@ class CartSpec extends TestKit(ActorSystem("CartSpec"))
     }
 
     "increment the item's count" in {
-      underlyingActor.itemCount = 0
       cart ! AddItem
       assert(underlyingActor.itemCount == 1)
     }
 
     "decrement the item's count" in {
-      underlyingActor.itemCount = 1
       cart ! RemoveItem
       assert(underlyingActor.itemCount == 0)
     }
 
     "not decrement the counter if it's already equal to 0" in {
-      underlyingActor.itemCount = 0
       cart ! RemoveItem
       assert(underlyingActor.itemCount == 0)
     }
