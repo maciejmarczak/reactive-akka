@@ -1,9 +1,12 @@
 package org.mmarczak.reactive.store
 
 import java.util.concurrent.TimeUnit
-import akka.actor.{Actor, ActorLogging, Props, Timers}
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
+
 import scala.concurrent.duration.FiniteDuration
 import CheckoutProtocol._
+import org.mmarczak.reactive.store.CustomerProtocol.PaymentServiceStarted
 
 object Checkout {
   def props(): Props = Props(new Checkout())
@@ -30,8 +33,8 @@ class Checkout extends Actor with ActorLogging with Timers {
       deliveryMethod = method
       become(selectingPayment)
     }
-    case Cancelled | CheckoutExpired => {
-      stop(Cancelled)
+    case CheckoutCancelled | CheckoutExpired => {
+      stop(CheckoutCancelled)
     }
   }
 
@@ -39,20 +42,21 @@ class Checkout extends Actor with ActorLogging with Timers {
     case SelectPaymentMethod(method) => {
       log.info(s"Changing payment method from $paymentMethod to $method.")
       paymentMethod = method
+      sender ! PaymentServiceStarted(context.actorOf(PaymentService.props(), "paymentService"))
       setTimer(PaymentExpired, paymentTimeout)
       become(processingPayment)
     }
-    case Cancelled | CheckoutExpired => {
-      stop(Cancelled)
+    case CheckoutCancelled | CheckoutExpired => {
+      stop(CheckoutCancelled)
     }
   }
 
   def processingPayment: Receive = {
-    case ReceivePayment => {
-      stop(Closed)
+    case PaymentReceived => {
+      stop(CheckoutClosed)
     }
-    case Cancelled | PaymentExpired => {
-      stop(Cancelled)
+    case CheckoutCancelled | PaymentExpired => {
+      stop(CheckoutCancelled)
     }
   }
 

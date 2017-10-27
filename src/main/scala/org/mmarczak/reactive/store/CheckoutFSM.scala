@@ -14,10 +14,12 @@ case object ProcessingPayment extends CheckoutState
 
 final case class CheckoutData(deliveryMethod: DeliveryMethod, paymentMethod: PaymentMethod)
 
+@Deprecated
 object CheckoutFSM {
   def props(): Props = Props[CheckoutFSM]
 }
 
+@Deprecated
 class CheckoutFSM extends FSM[CheckoutState, CheckoutData] with LoggingFSM[CheckoutState, CheckoutData] {
 
   startWith(SelectingDelivery, CheckoutData(Postman, CreditCard))
@@ -29,8 +31,8 @@ class CheckoutFSM extends FSM[CheckoutState, CheckoutData] with LoggingFSM[Check
       log.info(s"Delivery method selected: $method.")
       goto(SelectingPayment) using CheckoutData(method, paymentMethod)
     }
-    case Event(Cancelled | CheckoutExpired, _) => {
-      terminate(Cancelled)
+    case Event(CheckoutCancelled | CheckoutExpired, _) => {
+      terminate(CheckoutCancelled)
     }
   }
 
@@ -39,17 +41,17 @@ class CheckoutFSM extends FSM[CheckoutState, CheckoutData] with LoggingFSM[Check
       log.info(s"Payment method selected: $method")
       goto(ProcessingPayment) using CheckoutData(deliveryMethod, method)
     }
-    case Event(Cancelled | CheckoutExpired, _) => {
-      terminate(Cancelled)
+    case Event(CheckoutCancelled | CheckoutExpired, _) => {
+      terminate(CheckoutCancelled)
     }
   }
 
   when(ProcessingPayment, stateTimeout = FiniteDuration(Config.paymentTimeout, TimeUnit.SECONDS)) {
-    case Event(ReceivePayment, _) => {
-      terminate(Closed)
+    case Event(PaymentReceived, _) => {
+      terminate(CheckoutClosed)
     }
-    case Event(Cancelled | StateTimeout, _) => {
-      terminate(Cancelled)
+    case Event(CheckoutCancelled | StateTimeout, _) => {
+      terminate(CheckoutCancelled)
     }
   }
 

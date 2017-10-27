@@ -1,7 +1,9 @@
 package org.mmarczak.reactive.store
 
 import java.util.concurrent.TimeUnit
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
+
+import akka.actor.{Actor, ActorLogging, Props, Timers}
+
 import scala.concurrent.duration.FiniteDuration
 
 object Cart {
@@ -10,38 +12,41 @@ object Cart {
 
 class Cart extends Actor with ActorLogging with Timers {
 
-  private var itemCount = 0
-  private var checkoutActor: ActorRef = _
+  var itemCount: Int = 0
 
   def addItem(): Unit = {
     itemCount += 1
     log.info(s"Added item to the cart. New item count: $itemCount.")
-    CartTimer.resetTimer()
+    CartTimer.refresh()
   }
 
   def removeItem(): Unit = {
     itemCount -= 1
     log.info(s"Removed item from the cart. New item count: $itemCount.")
-    if (itemCount == 0) CartTimer.disableTimer() else CartTimer.resetTimer()
+    CartTimer.refresh()
+  }
+
+  import context._
+  import CartProtocol._, CheckoutProtocol._, CustomerProtocol._
+  def emptyCart(): Unit = {
+    itemCount = 0
+    log.info("Removed all items from the cart. The cart is now empty.")
+    parent ! CartEmpty
+    become(empty)
   }
 
   private object CartTimer {
     case object CartExpired
     private lazy val cartTimeout = new FiniteDuration(Config.cartTimeout, TimeUnit.SECONDS)
 
-    def resetTimer(): Unit = {
-      disableTimer()
-      timers.startSingleTimer(CartExpired, CartExpired, cartTimeout)
-    }
-
-    def disableTimer(): Unit = {
+    def refresh(): Unit = {
       timers.cancelAll()
+      if (itemCount > 0) {
+        timers.startSingleTimer(CartExpired, CartExpired, cartTimeout)
+      }
     }
-
   }
 
-  import context._
-  import CartProtocol._, CheckoutProtocol._
   def empty: Receive = {
     case AddItem => {
       addItem()
@@ -51,32 +56,21 @@ class Cart extends Actor with ActorLogging with Timers {
 
   def nonEmpty: Receive = {
     case AddItem => addItem()
-    case RemoveItem if itemCount == 1 => {
-      removeItem()
-      become(empty)
-    }
+    case RemoveItem if itemCount == 1 => emptyCart()
     case RemoveItem => removeItem()
     case StartCheckout => {
-      CartTimer.disableTimer()
-      checkoutActor = context.actorOf(Checkout.props())
+      parent ! CheckoutStarted(context.actorOf(Checkout.props(), "checkout"))
       become(inCheckout)
     }
-    case CartTimer.CartExpired => {
-      itemCount = 0
-      become(empty)
-    }
+    case CartTimer.CartExpired => emptyCart()
   }
 
   def inCheckout: Receive = {
-    case Cancelled => {
-      CartTimer.resetTimer()
+    case CheckoutCancelled => {
+      CartTimer.refresh()
       become(nonEmpty)
     }
-    case Closed => {
-      itemCount = 0
-      become(empty)
-    }
-    case GetCheckout => sender ! checkoutActor
+    case CheckoutClosed => emptyCart()
   }
 
   // it's starting in an 'empty' state

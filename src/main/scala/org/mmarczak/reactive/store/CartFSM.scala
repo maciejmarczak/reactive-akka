@@ -3,8 +3,8 @@ package org.mmarczak.reactive.store
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorRef, FSM, LoggingFSM, Props}
-import org.mmarczak.reactive.store.CartProtocol.{AddItem, GetCheckout, RemoveItem, StartCheckout}
-import org.mmarczak.reactive.store.CheckoutProtocol.{Cancelled, Closed}
+import org.mmarczak.reactive.store.CartProtocol.{AddItem, RemoveItem, StartCheckout}
+import org.mmarczak.reactive.store.CheckoutProtocol.{CheckoutCancelled, CheckoutClosed}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -15,10 +15,12 @@ case object InCheckout extends CartState
 
 final case class CartData(itemCount: Int, checkoutActor: ActorRef = null)
 
+@Deprecated
 object CartFSM {
   def props(): Props = Props[CartFSM]
 }
 
+@Deprecated
 class CartFSM extends FSM[CartState, CartData] with LoggingFSM[CartState, CartData] {
 
   startWith(Empty, CartData(0))
@@ -52,15 +54,11 @@ class CartFSM extends FSM[CartState, CartData] with LoggingFSM[CartState, CartDa
   }
 
   when(InCheckout) {
-    case Event(Closed, _) => {
+    case Event(CheckoutClosed, _) => {
       goto(Empty) using CartData(0)
     }
-    case Event(Cancelled, CartData(itemCount, _)) => {
+    case Event(CheckoutCancelled, CartData(itemCount, _)) => {
       goto(NonEmpty) using CartData(itemCount)
-    }
-    case Event(GetCheckout, cartData @ CartData(_, checkoutActor)) => {
-      sender ! checkoutActor
-      stay() using cartData
     }
   }
 
