@@ -14,8 +14,8 @@ object Checkout {
 
 class Checkout extends Actor with ActorLogging with Timers {
 
-  private var deliveryMethod: DeliveryMethod = Postman
-  private var paymentMethod: PaymentMethod = CreditCard
+  var deliveryMethod: DeliveryMethod = Postman
+  var paymentMethod: PaymentMethod = CreditCard
 
   private object CheckoutTimer {
     lazy val checkoutTimeout = new FiniteDuration(Config.checkoutTimeout, TimeUnit.SECONDS)
