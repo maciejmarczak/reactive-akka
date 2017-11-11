@@ -2,6 +2,8 @@ package org.mmarczak.reactive.store
 
 import akka.actor.ActorRef
 
+case object Shutdown
+
 object CustomerProtocol {
   case class CheckoutStarted(actorRef: ActorRef)
   case class PaymentServiceStarted(actorRef: ActorRef)
@@ -10,9 +12,12 @@ object CustomerProtocol {
 }
 
 object CartProtocol {
-  case object AddItem
-  case object RemoveItem
-  case object StartCheckout
+  sealed trait Event
+  case object AddItem extends Event
+  case object RemoveItem extends Event
+  case object StartCheckout extends Event
+  case object CartExpired extends Event
+  case object GetState
 }
 
 object CheckoutProtocol {

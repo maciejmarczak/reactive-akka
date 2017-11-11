@@ -1,61 +1,41 @@
 package org.mmarczak.reactive.store
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import org.mmarczak.reactive.store.CartProtocol.{AddItem, RemoveItem, StartCheckout}
-import org.mmarczak.reactive.store.CustomerProtocol.{CartEmpty, CheckoutStarted}
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
+import org.scalatest.WordSpec
 
-class CartSpec extends TestKit(ActorSystem("CartSpec"))
-  with WordSpecLike with BeforeAndAfterAll {
+class CartSpec extends WordSpec {
 
-  "A Cart actor" must {
-    val cart = TestActorRef[Cart]
-    val underlyingActor = cart.underlyingActor
+  "A Cart object" should {
 
-    "start with item's count equal to 0" in {
-      assert(underlyingActor.itemCount == 0)
-    }
+    "have a constructor" which {
 
-    "increment the item's count" in {
-      cart ! AddItem
-      assert(underlyingActor.itemCount == 1)
-    }
-
-    "decrement the item's count" in {
-      cart ! RemoveItem
-      assert(underlyingActor.itemCount == 0)
-    }
-
-    "not decrement the counter if it's already equal to 0" in {
-      cart ! RemoveItem
-      assert(underlyingActor.itemCount == 0)
-    }
-  }
-
-  "A Cart actor" must {
-
-    "create and return a reference to Checkout actor" in {
-      val customer = TestProbe()
-      val cart = customer.childActorOf(Cart.props())
-
-      customer.send(cart, AddItem)
-      customer.send(cart, StartCheckout)
-      customer.expectMsgPF() {
-        case CheckoutStarted(_) => ()
+      "is a no-arg, and creates a Cart with itemCount equal to 0" in {
+        val cart: Cart = Cart()
+        assert(cart.itemCount == 0)
       }
+
+      "has one arg that specifies initial itemCount" in {
+        val cart: Cart = Cart(5)
+        assert(cart.itemCount == 5)
+      }
+
     }
 
-    "send an CartEmpty message when item's count decrement to 0" in {
-      val customer = TestProbe()
-      val cart = customer.childActorOf(Cart.props())
+    "return a new Cart object with itemCount incremented by 1" in {
+      val initialCart: Cart = Cart(3)
+      val updatedCart: Cart = initialCart.addItem()
 
-      customer.send(cart, AddItem)
-      customer.send(cart, RemoveItem)
-      customer.expectMsg(CartEmpty)
+      assert(updatedCart.itemCount == 4)
+      assert(initialCart != updatedCart)
     }
+
+    "return a new Cart object with itemCount decremented by 1" in {
+      val initialCart: Cart = Cart(3)
+      val updatedCart: Cart = initialCart.removeItem()
+
+      assert(updatedCart.itemCount == 2)
+      assert(initialCart != updatedCart)
+    }
+
   }
-
-  override def afterAll(): Unit = TestKit.shutdownActorSystem(system)
 
 }

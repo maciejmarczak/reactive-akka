@@ -10,7 +10,7 @@ object Customer {
 
 class Customer extends Actor with ActorLogging {
 
-  private val cart = context.actorOf(Cart.props(), "cart")
+  private val cart = context.actorOf(CartManager.props(), "cart")
 
   private var checkout: Option[ActorRef] = None
   private var payment: Option[ActorRef] = None
