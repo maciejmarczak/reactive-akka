@@ -2,7 +2,7 @@ package org.mmarczak.reactive.store
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, ActorLogging, Props, Timers}
+import akka.actor.{ActorLogging, Props, Timers}
 
 import scala.concurrent.duration.FiniteDuration
 import CheckoutProtocol._
@@ -56,6 +56,7 @@ class CheckoutManager(id: String) extends PersistentActor with ActorLogging with
   }
 
   val receiveRecover: Receive = {
+    case PaymentReceived => updateState(CheckoutClosed)
     case event: CheckoutProtocol.Event => updateState(event)
     case status: CheckoutStatus => updateState(status)
   }

@@ -32,15 +32,20 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
     become(event match {
       case AddItem => {
         state = state.addItem()
+        log.info(s"Adding item to the cart. New item's count: ${state.itemCount}")
         CartTimer.refresh()
         nonEmpty
       }
       case RemoveItem => {
         state = state.removeItem()
+        log.info(s"Removing item from the cart. New item's count: ${state.itemCount}")
         CartTimer.refresh()
         if (state.itemCount == 0) empty else nonEmpty
       }
-      case StartCheckout => inCheckout
+      case StartCheckout => {
+        log.info("Starting checkout.")
+        inCheckout
+      }
       case CartExpired => {
         state = Cart()
         log.info(s"Expired: ${state.itemCount}")
@@ -51,10 +56,12 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
   def updateState(checkoutStatus: CheckoutStatus): Unit =
     become(checkoutStatus match {
       case CheckoutCancelled => {
+        log.info("Checkout cancelled.")
         CartTimer.refresh()
         nonEmpty
       }
       case CheckoutClosed => {
+        log.info("Checkout closed.")
         state = Cart()
         empty
       }
@@ -71,6 +78,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
     def refresh(): Unit = {
       timers.cancelAll()
       if (state.itemCount > 0) {
+        log.info(s"Refreshing timer: $CartExpired")
         timers.startSingleTimer(CartExpired, CartExpired, cartTimeout)
       }
     }
@@ -99,7 +107,10 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
     }
     case StartCheckout =>
       persist(StartCheckout) {
-        _ => parent ! CheckoutStarted(context.actorOf(CheckoutManager.props(), "checkout"))
+        _ => {
+          updateState(StartCheckout)
+          parent ! CheckoutStarted(context.actorOf(CheckoutManager.props(), "checkout"))
+        }
     }
     case CartExpired =>
       persist(CartExpired) {
