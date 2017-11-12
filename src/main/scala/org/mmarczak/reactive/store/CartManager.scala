@@ -2,7 +2,7 @@ package org.mmarczak.reactive.store
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorLogging, PoisonPill, Props, Timers}
+import akka.actor.{ActorLogging, Props, Timers}
 import akka.event.LoggingReceive
 import akka.persistence.PersistentActor
 import org.mmarczak.reactive.store.CartProtocol._
@@ -23,7 +23,7 @@ object CartManager {
 
 class CartManager(id: String) extends PersistentActor with ActorLogging with Timers {
 
-  override def persistenceId = id
+  override def persistenceId: String = id
 
   var state = Cart()
 
@@ -62,6 +62,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
 
   val receiveRecover: Receive = {
     case event: CartProtocol.Event => updateState(event)
+    case status: CheckoutStatus => updateState(status)
   }
 
   private object CartTimer {
@@ -98,7 +99,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
     }
     case StartCheckout =>
       persist(StartCheckout) {
-        _ => parent ! CheckoutStarted(context.actorOf(Checkout.props(), "checkout"))
+        _ => parent ! CheckoutStarted(context.actorOf(CheckoutManager.props(), "checkout"))
     }
     case CartExpired =>
       persist(CartExpired) {

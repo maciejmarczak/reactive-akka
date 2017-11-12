@@ -21,23 +21,26 @@ object CartProtocol {
 }
 
 object CheckoutProtocol {
+  sealed trait Event
+
   sealed trait DeliveryMethod
   case object Postman extends DeliveryMethod
   case object SelfPickup extends DeliveryMethod
 
-  case class SelectDeliveryMethod(deliveryMethod: DeliveryMethod)
+  case class SelectDeliveryMethod(deliveryMethod: DeliveryMethod) extends Event
 
   sealed trait PaymentMethod
   case object CreditCard extends PaymentMethod
   case object OnlineTransfer extends PaymentMethod
 
-  case class SelectPaymentMethod(paymentMethod: PaymentMethod)
+  case class SelectPaymentMethod(paymentMethod: PaymentMethod) extends Event
 
   sealed trait CheckoutStatus
   case object CheckoutCancelled extends CheckoutStatus
   case object CheckoutClosed extends CheckoutStatus
+  case object CheckoutExpired extends CheckoutStatus
 
-  case object PaymentReceived
+  case object PaymentReceived extends Event
 }
 
 object PaymentProtocol {
