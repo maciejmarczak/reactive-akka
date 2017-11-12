@@ -2,7 +2,7 @@ package org.mmarczak.reactive.store
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorLogging, Props, Timers}
+import akka.actor.{ActorLogging, ActorRef, Props, Timers}
 import akka.event.LoggingReceive
 import akka.persistence.PersistentActor
 import org.mmarczak.reactive.store.CartProtocol._
@@ -25,6 +25,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
 
   override def persistenceId: String = id
 
+  var checkout: ActorRef = _
   var state = Cart()
 
   import context._
@@ -44,6 +45,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
       }
       case StartCheckout => {
         log.info("Starting checkout.")
+        checkout = context.actorOf(CheckoutManager.props(), "checkout")
         inCheckout
       }
       case CartExpired => {
@@ -109,7 +111,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
       persist(StartCheckout) {
         _ => {
           updateState(StartCheckout)
-          parent ! CheckoutStarted(context.actorOf(CheckoutManager.props(), "checkout"))
+          parent ! CheckoutStarted(checkout)
         }
     }
     case CartExpired =>
@@ -134,6 +136,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
       }
     }
     case GetState => sender ! state
+    case GetCheckout => sender ! checkout
   }
 
   // it's starting in an 'empty' state

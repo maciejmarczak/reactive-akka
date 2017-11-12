@@ -3,12 +3,13 @@ package org.mmarczak.reactive.store
 import java.util.concurrent.TimeUnit
 
 import akka.pattern.gracefulStop
-import akka.actor.{ActorSystem, PoisonPill}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.persistence.inmemory.extension.{InMemoryJournalStorage, StorageExtension}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import org.mmarczak.reactive.store.CartProtocol.{AddItem, GetState, RemoveItem, StartCheckout}
+import org.mmarczak.reactive.store.CartProtocol._
 import org.mmarczak.reactive.store.CheckoutProtocol._
-import org.mmarczak.reactive.store.CustomerProtocol.{CartEmpty, CheckoutStarted}
+import org.mmarczak.reactive.store.CustomerProtocol.{CartEmpty, CheckoutStarted, PaymentServiceStarted}
+import org.mmarczak.reactive.store.PaymentProtocol.DoPayment
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, WordSpecLike}
 
 import scala.concurrent.{Await, Future}
@@ -100,6 +101,40 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
 
         customer.send(newCart, GetState)
         customer.expectMsg(Cart(1))
+        customer.expectMsg(CartEmpty)
+      }
+
+      "it comes to Checkout object" in {
+        val customer = TestProbe()
+        val cart = customer.childActorOf(CartManager.props())
+
+        customer.send(cart, AddItem)
+        customer.send(cart, StartCheckout)
+        customer.expectMsgPF() {
+          case CheckoutStarted(_) => ()
+        }
+
+        val stopped: Future[Boolean] = gracefulStop(cart, 2 seconds)
+        Await.result(stopped, 3 seconds)
+
+        val newCart = customer.childActorOf(CartManager.props())
+
+        customer.send(newCart, GetState)
+        customer.expectMsg(Cart(1))
+        customer.send(newCart, GetCheckout)
+        customer.expectMsgPF() {
+          case (checkout: ActorRef) => {
+            customer.send(checkout, SelectDeliveryMethod(SelfPickup))
+            customer.send(checkout, SelectPaymentMethod(OnlineTransfer))
+          }
+        }
+
+        customer.expectMsgPF() {
+          case PaymentServiceStarted(payment) => {
+            payment ! DoPayment
+          }
+        }
+
         customer.expectMsg(CartEmpty)
       }
     }

@@ -18,6 +18,7 @@ object CartProtocol {
   case object StartCheckout extends Event
   case object CartExpired extends Event
   case object GetState
+  case object GetCheckout
 }
 
 object CheckoutProtocol {
