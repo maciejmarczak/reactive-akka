@@ -15,3 +15,5 @@ libraryDependencies += "org.fusesource.leveldbjni"   % "leveldbjni-all"   % "1.8
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 
 libraryDependencies += "com.github.dnvriend" %% "akka-persistence-inmemory" % "2.5.1.1"
+
+parallelExecution in Test := false

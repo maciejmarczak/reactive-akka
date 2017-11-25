@@ -11,7 +11,7 @@ import org.mmarczak.reactive.store.CustomerProtocol.{CartEmpty, CheckoutStarted}
 
 import scala.concurrent.duration.FiniteDuration
 
-case class Item(id: String, name: String, count: Int)
+case class Item(id: String, name: String, count: Int = 0)
 case class Cart(items: Map[String, Item] = Map.empty) {
   def addItem(it: Item): Cart =
     copy(items = items.updated(it.id, it.copy(count = itemCount(it) + it.count)))

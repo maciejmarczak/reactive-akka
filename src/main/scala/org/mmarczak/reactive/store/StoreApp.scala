@@ -16,8 +16,8 @@ object StoreApp extends App {
   val localSystem = ActorSystem("local", Config.localConfig)
   val productCatalog = localSystem.actorSelection("akka.tcp://catalog@127.0.0.1:2555/user/product-catalog")
 
-  implicit val timeout: Timeout = Timeout(5 seconds)
-  val future = productCatalog ? FindItems("sample items")
+  implicit val timeout: Timeout = Timeout(10 seconds)
+  val future = productCatalog ? FindItems("california almonds jar")
   val result = Await.result(future, timeout.duration)
 
   println("result: " + result)
