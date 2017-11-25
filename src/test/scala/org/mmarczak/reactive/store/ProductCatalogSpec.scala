@@ -20,4 +20,6 @@ class ProductCatalogSpec extends TestKit(ActorSystem("ProductCatalogSpec"))
       ))
     }
   }
+
+  override def afterAll(): Unit = TestKit.shutdownActorSystem(system)
 }
