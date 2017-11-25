@@ -19,7 +19,7 @@ class ProductCatalog extends Actor {
   private def findByQuery(query: String): List[Item] = {
     val queryKeywords = toKeywordSet(query)
 
-    val itemsMatches = Source.fromFile(Config.catalogPath)
+    val itemsMatches = Source.fromResource(Config.catalogFilename)
       .getLines
       .filter(_.length >= Config.minEntryLen)
       .map(line => {
@@ -36,12 +36,12 @@ class ProductCatalog extends Actor {
       .values
       .toList
 
-    itemsMatches.sortBy(-_._2).map(_._1).take(10)
+    itemsMatches.sortBy(-_._2).map(_._1).take(Config.resultSize)
   }
 
   private def parseItem(line: String): Item  = {
     val cols = line.split(",", 2).map(col => col.replaceAll("\"", ""))
-    Item(cols(0), cols(1))
+    Item(cols(0), cols(1).replaceAll(",", " "))
   }
 
   private def toKeywordSet(str: String): Set[String] = {
