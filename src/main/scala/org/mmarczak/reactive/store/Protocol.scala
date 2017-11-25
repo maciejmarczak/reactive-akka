@@ -47,3 +47,7 @@ object CheckoutProtocol {
 object PaymentProtocol {
   case object DoPayment
 }
+
+object ProductCatalogProtocol {
+  case class FindItems(query: String)
+}
