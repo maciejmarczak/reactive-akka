@@ -1,9 +1,7 @@
 package org.mmarczak.reactive.store
 
-import java.util.concurrent.TimeUnit
-
 import akka.pattern.gracefulStop
-import akka.actor.{ActorRef, ActorSystem, PoisonPill}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.persistence.inmemory.extension.{InMemoryJournalStorage, StorageExtension}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.mmarczak.reactive.store.CartProtocol._
@@ -23,11 +21,13 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
 
   "A CartManager actor" must {
 
+    val sampleItem = Item("1", "Sample Item", 3)
+
     "create and return a reference to Checkout actor" in {
       val customer = TestProbe()
       val cart = customer.childActorOf(CartManager.props())
 
-      customer.send(cart, AddItem)
+      customer.send(cart, AddItem(sampleItem))
       customer.send(cart, StartCheckout)
       customer.expectMsgPF() {
         case CheckoutStarted(_) => ()
@@ -38,8 +38,8 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
       val customer = TestProbe()
       val cart = customer.childActorOf(CartManager.props())
 
-      customer.send(cart, AddItem)
-      customer.send(cart, RemoveItem)
+      customer.send(cart, AddItem(sampleItem))
+      customer.send(cart, RemoveItem(sampleItem))
       customer.expectMsg(CartEmpty)
     }
 
@@ -47,7 +47,7 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
       val customer = TestProbe()
       val cart = customer.childActorOf(CartManager.props())
 
-      customer.send(cart, AddItem)
+      customer.send(cart, AddItem(sampleItem))
       // expires after one second
       customer.expectMsg(CartEmpty)
     }
@@ -56,7 +56,7 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
       val customer = TestProbe()
       val cart = customer.childActorOf(CartManager.props())
 
-      customer.send(cart, AddItem)
+      customer.send(cart, AddItem(sampleItem))
       customer.send(cart, StartCheckout)
       customer.send(cart, CheckoutClosed)
 
@@ -73,9 +73,9 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
       "it comes to item's count" in {
         val cart = system.actorOf(CartManager.props())
 
-        cart ! AddItem
+        cart ! AddItem(sampleItem)
         cart ! GetState
-        expectMsg(Cart(1))
+        expectMsg(Cart(Map("1" -> sampleItem)))
 
         val stopped: Future[Boolean] = gracefulStop(cart, 2 seconds)
         Await.result(stopped, 3 seconds)
@@ -83,16 +83,16 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
         val newCart = system.actorOf(CartManager.props())
         newCart ! GetState
 
-        expectMsg(Cart(1))
+        expectMsg(Cart(Map("1" -> sampleItem)))
       }
 
       "it comes to cart timer" in {
         val customer = TestProbe()
         val cart = customer.childActorOf(CartManager.props())
 
-        customer.send(cart, AddItem)
+        customer.send(cart, AddItem(sampleItem))
         customer.send(cart, GetState)
-        customer.expectMsg(Cart(1))
+        customer.expectMsg(Cart(Map("1" -> sampleItem)))
 
         val stopped: Future[Boolean] = gracefulStop(cart, 2 seconds)
         Await.result(stopped, 3 seconds)
@@ -100,7 +100,7 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
         val newCart = customer.childActorOf(CartManager.props())
 
         customer.send(newCart, GetState)
-        customer.expectMsg(Cart(1))
+        customer.expectMsg(Cart(Map("1" -> sampleItem)))
         customer.expectMsg(CartEmpty)
       }
 
@@ -108,7 +108,7 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
         val customer = TestProbe()
         val cart = customer.childActorOf(CartManager.props())
 
-        customer.send(cart, AddItem)
+        customer.send(cart, AddItem(sampleItem))
         customer.send(cart, StartCheckout)
         customer.expectMsgPF() {
           case CheckoutStarted(_) => ()
@@ -120,7 +120,7 @@ class CartManagerSpec extends TestKit(ActorSystem("CartSpec"))
         val newCart = customer.childActorOf(CartManager.props())
 
         customer.send(newCart, GetState)
-        customer.expectMsg(Cart(1))
+        customer.expectMsg(Cart(Map("1" -> sampleItem)))
         customer.send(newCart, GetCheckout)
         customer.expectMsgPF() {
           case (checkout: ActorRef) => {

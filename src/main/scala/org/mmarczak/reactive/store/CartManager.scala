@@ -11,10 +11,19 @@ import org.mmarczak.reactive.store.CustomerProtocol.{CartEmpty, CheckoutStarted}
 
 import scala.concurrent.duration.FiniteDuration
 
-case class Cart(private val _itemCount: Int = 0) {
-  def addItem(): Cart = Cart(_itemCount + 1)
-  def removeItem(): Cart = Cart(Math.max(_itemCount - 1, 0))
-  def itemCount(): Int = _itemCount
+case class Item(id: String, name: String, count: Int)
+case class Cart(items: Map[String, Item] = Map.empty) {
+  def addItem(it: Item): Cart =
+    copy(items = items.updated(it.id, it.copy(count = itemCount(it) + it.count)))
+
+  def removeItem(it: Item): Cart =
+    if (itemCount(it) > 0)
+      copy(items = items.updated(it.id, it.copy(count = Math.max(0, itemCount(it) - it.count))))
+    else
+      copy(items = items - it.id)
+
+  def allItemsCount(): Int = items.foldLeft(0)(_ + _._2.count)
+  def itemCount(it: Item): Int = if (items contains it.id) items(it.id).count else 0
 }
 
 object CartManager {
@@ -31,17 +40,17 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
   import context._
   def updateState(event: CartProtocol.Event): Unit =
     become(event match {
-      case AddItem => {
-        state = state.addItem()
-        log.info(s"Adding item to the cart. New item's count: ${state.itemCount}")
+      case AddItem(item) => {
+        state = state.addItem(item)
+        log.info(s"Adding item to the cart. New item's count: ${state.allItemsCount}")
         CartTimer.refresh()
         nonEmpty
       }
-      case RemoveItem => {
-        state = state.removeItem()
-        log.info(s"Removing item from the cart. New item's count: ${state.itemCount}")
+      case RemoveItem(item) => {
+        state = state.removeItem(item)
+        log.info(s"Removing item from the cart. New item's count: ${state.allItemsCount}")
         CartTimer.refresh()
-        if (state.itemCount == 0) empty else nonEmpty
+        if (state.allItemsCount == 0) empty else nonEmpty
       }
       case StartCheckout => {
         log.info("Starting checkout.")
@@ -50,7 +59,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
       }
       case CartExpired => {
         state = Cart()
-        log.info(s"Expired: ${state.itemCount}")
+        log.info(s"Expired: ${state.allItemsCount}")
         empty
       }
     })
@@ -79,7 +88,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
 
     def refresh(): Unit = {
       timers.cancelAll()
-      if (state.itemCount > 0) {
+      if (state.allItemsCount > 0) {
         log.info(s"Refreshing timer: $CartExpired")
         timers.startSingleTimer(CartExpired, CartExpired, cartTimeout)
       }
@@ -87,7 +96,7 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
   }
 
   def empty: Receive = LoggingReceive {
-    case AddItem => persist(AddItem) {
+    case AddItem(item) => persist(AddItem(item)) {
       addItem =>
         updateState(addItem)
       }
@@ -95,15 +104,15 @@ class CartManager(id: String) extends PersistentActor with ActorLogging with Tim
   }
 
   def nonEmpty: Receive = LoggingReceive {
-    case AddItem => persist(AddItem) {
+    case AddItem(item) => persist(AddItem(item)) {
       addItem =>
         updateState(addItem)
     }
-    case RemoveItem => {
-      persist(RemoveItem) {
+    case RemoveItem(item) => {
+      persist(RemoveItem(item)) {
         removeItem => {
           updateState(removeItem)
-          if (state.itemCount == 0) parent ! CartEmpty
+          if (state.allItemsCount == 0) parent ! CartEmpty
         }
       }
     }

@@ -13,8 +13,8 @@ object CustomerProtocol {
 
 object CartProtocol {
   sealed trait Event
-  case object AddItem extends Event
-  case object RemoveItem extends Event
+  case class AddItem(item: Item) extends Event
+  case class RemoveItem(item: Item) extends Event
   case object StartCheckout extends Event
   case object CartExpired extends Event
   case object GetState
