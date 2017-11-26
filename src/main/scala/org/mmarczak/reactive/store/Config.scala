@@ -17,4 +17,6 @@ object Config {
   lazy val cartTimeout: Long  = config.getLong("storeApp.cart.timeout")
   lazy val checkoutTimeout: Long = config.getLong("storeApp.checkout.timeouts.checkout")
   lazy val paymentTimeout: Long = config.getLong("storeApp.checkout.timeouts.payment")
+
+  lazy val testEnv: Boolean = config.getBoolean("storeApp.testEnv")
 }

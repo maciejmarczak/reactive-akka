@@ -46,6 +46,7 @@ object CheckoutProtocol {
 
 object PaymentProtocol {
   case object DoPayment
+  case object Done
 }
 
 object ProductCatalogProtocol {

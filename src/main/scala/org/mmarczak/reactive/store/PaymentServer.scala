@@ -12,7 +12,7 @@ import scala.util.Random
 object PaymentServer {
   def main(args: Array[String]) {
 
-    implicit val system = ActorSystem("my-system")
+    implicit val system = ActorSystem("payment-system")
     implicit val materializer = ActorMaterializer()
 
     implicit val executionContext = system.dispatcher
@@ -24,7 +24,7 @@ object PaymentServer {
           val responseJson = "{ \"status\": \"" + status + "\" }"
 
           // mock some processing...
-          Thread.sleep(1000)
+          Thread.sleep(500)
           complete(HttpEntity(ContentTypes.`application/json`, responseJson))
         }
       }
